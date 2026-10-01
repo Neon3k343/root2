@@ -55,6 +55,7 @@
         "INFOPLIST_FILE": "root2/Info.plist",
         "INFOPLIST_KEY_CFBundleDisplayName": "root2",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.photography",
+        "INFOPLIST_KEY_NSCameraUsageDescription": "Viewfinder for root2",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]": "YES",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]": "YES",
         "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]": "YES",

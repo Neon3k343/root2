@@ -35,6 +35,7 @@ struct CameraScreen: View {
     @State private var isRAW: Bool = false
     @State private var availableEV: [Double] = [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
     @State private var selectedEV: Int = 0
+    @State private var cameraManager = CameraManager()
     @State var dragOffset: CGFloat = .zero
     @State var currentOffset: CGFloat = .zero
     @State var isMenu: Bool = false
@@ -85,13 +86,11 @@ struct CameraScreen: View {
             }
             .statusBar(hidden: true)
             
-            GeometryReader { geo in
-                Text("Size:  (\(geo.size.width), \(geo.size.height))")
-                Rectangle()
-                    .frame(width: geo.size.width, height: sqrt(2)*geo.size.width)
-                    .foregroundStyle(Color.yellowish)
-                        
-            }
+            CameraPreviewView(session: cameraManager.session)
+                .ignoresSafeArea(edges: .all)
+                .aspectRatio((1.0 / sqrt(2.0)), contentMode: .fit)
+                .clipped()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             Spacer()
             
@@ -320,6 +319,11 @@ struct CameraScreen: View {
                 }
             }
         }
+        
+        .onChange(of: selectedEV) { _, newValue in
+            cameraManager.setExposureBias(Float(newValue) / 3)
+        }
+        .background(Color.black.ignoresSafeArea())
     }
     
     private enum Layout {
