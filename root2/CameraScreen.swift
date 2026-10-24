@@ -21,7 +21,7 @@ struct ShrinkingButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
           .scaleEffect(configuration.isPressed ? 0.9 : 1)
-          .opacity(configuration.isPressed ? 0.8 : 1)
+          .opacity(configuration.isPressed ? 0.7 : 1)
           .animation(.snappy(duration: 0.2), value: configuration.isPressed)
   }
 }
@@ -32,23 +32,39 @@ struct CameraScreen: View {
     @State private var selectedEV: Int = 0
     
     var body: some View {
-        VStack{
-            CameraTopBarView()
-            CameraViewfinderView()
-            LensBarView()
-            CaptureControlsView()
-            SecondaryControlsView()
-                .padding(.top)
-            ExposureSliderView(selectedEV: $selectedEV)
-                .offset(x: 0, y: -48)
+        
+        ZStack{
+            VStack{
+                CameraViewfinderView()
+                    .border(Color.yellowish, width: 2)
+                    .aspectRatio((1.0 / sqrt(2.0)), contentMode: .fit)
+                    .safeAreaPadding(.top)
+                Spacer()
+            }
+            
+            VStack{
+                TopBarView()
+                    .safeAreaPadding(.top)
+                    .ignoresSafeArea()
+                Spacer()
+                LensBarView()
+                CaptureControlsView()
+                ZStack{
+                    SecondaryControlsView()
+                    ExposureSliderView(selectedEV: $selectedEV)
+                }
+            }
+            .padding(.bottom, 10)
         }
         .background(Color.black.ignoresSafeArea())
-        
+        .preferredColorScheme(.dark)
     }
 }
 
-struct CameraTopBarView: View {
+struct TopBarView: View {
     
+    @State private var batteryLevel: Float = 0.0
+    @State private var batteryState: UIDevice.BatteryState = .unknown
     @State var isMenu: Bool = false
     
     var body: some View {
@@ -62,15 +78,12 @@ struct CameraTopBarView: View {
                         isMenu.toggle()
                     }
                 } label: {
-                    Image(systemName: "line.3.horizontal")
+                    Image(systemName: "gear")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color.white)
                         .frame(width: 72, height: 36)
                         .contentShape(Capsule())
                 }
-                .sensoryFeedback(.impact(weight: .medium, intensity: 0.8), trigger: isMenu)
-                .glassEffect()
-                .safeAreaPadding(.horizontal)
                 
                 Spacer()
                 
@@ -80,18 +93,50 @@ struct CameraTopBarView: View {
                         isMenu.toggle()
                     }
                 } label: {
-                    Image(systemName: "line.3.horizontal")
+                    Text("\(Int(batteryLevel * 100))%")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color.white)
                         .frame(width: 72, height: 36)
                         .contentShape(Capsule())
                 }
-                .sensoryFeedback(.impact(weight: .medium, intensity: 0.8), trigger: isMenu)
-                .glassEffect()
-                .safeAreaPadding(.horizontal)
             }
         }
+        .opacity(0.7)
+        .padding(.horizontal, 12)
+        .sensoryFeedback(.impact(weight: .medium, intensity: 0.8), trigger: isMenu)
+        .safeAreaPadding(.horizontal)
         .statusBar(hidden: true)
+    }
+
+    private func setupBatteryMonitoring() {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        
+        // Read initial values
+        updateBatteryInfo()
+        
+        // Listen for level changes (sent roughly once per minute)
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryLevelDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            updateBatteryInfo()
+        }
+        
+        // Listen for state changes (charging, unplugged, etc.)
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryStateDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            updateBatteryInfo()
+            print(batteryLevel)
+        }
+    }
+
+    private func updateBatteryInfo() {
+        batteryLevel = UIDevice.current.batteryLevel
+        batteryState = UIDevice.current.batteryState
     }
 }
 
@@ -164,6 +209,9 @@ struct LensBarView: View {
 
 struct CaptureControlsView: View {
     
+    @State private var cameraManager = CameraManager()
+    @State var isFlash: Bool = false
+    
     var body: some View {
         
         //bottom 2nd layer
@@ -179,7 +227,7 @@ struct CaptureControlsView: View {
                     .frame(width: 72, height: 72)
                     .contentShape(Circle())
             }
-//            .sensoryFeedback(.impact(weight: .medium, intensity: 0.8), trigger: isFlash)
+            .sensoryFeedback(.impact(weight: .medium, intensity: 0.8), trigger: isFlash)
             .buttonStyle(.shrinking)
             .glassEffect()
             .safeAreaPadding(.horizontal)
@@ -188,7 +236,7 @@ struct CaptureControlsView: View {
             
             // shutter button
             Button {
-                
+                cameraManager.triggerShutter()
             } label: {
                 Color.clear
                     .frame(width: 144, height: 72)
@@ -233,9 +281,9 @@ struct SecondaryControlsView: View {
                 }
             } label: {
                 Text("RAW")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .strikethrough(!isRAW)
+                    .font(.system(size: 14, weight: (isRAW ? .black :.medium), design: .monospaced))
                     .foregroundStyle(isRAW ? Color.yellowish : Color.white)
+                    .opacity(isRAW ? 1 : 0.7)
                     .frame(width: 72, height: 36)
                     .contentShape(Capsule())
             }
@@ -258,9 +306,8 @@ struct SecondaryControlsView: View {
             } label: {
                 Image(systemName: isFlash ? "bolt.fill" : "bolt.slash.fill")
                     .font(.default)
-                    .foregroundStyle(
-                        isFlash ? Color.black : Color.white
-                    )
+                    .foregroundStyle(isFlash ? Color.black : Color.white)
+                    .opacity(isFlash ? 1 : 0.7)
                     .frame(width: 72, height: 36)
                     .contentShape(Capsule())
                     .background(
@@ -274,13 +321,6 @@ struct SecondaryControlsView: View {
             .buttonStyle(.shrinking)
             .glassEffect()
             .safeAreaPadding(.horizontal)
-        }
-    }
-    
-    
-    struct ExposureRulerView: View {
-        var body: some View {
-            
         }
     }
 }
@@ -332,50 +372,51 @@ struct ExposureSliderView: View {
                         .cornerRadius(2)
                     
                 }
+                .contentShape(Rectangle())
                 .offset(x: currentOffset + dragOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            
-                            let rawOffset = currentOffset + value.translation.width
-                            let minBound = -6.0 * Layout.pointsPerStep
-                            let maxBound = 6.0 * Layout.pointsPerStep
-                            let visualOffset: CGFloat
-                            if rawOffset > maxBound {
-                                let excess = rawOffset - maxBound
-                                visualOffset = maxBound + (sqrt(excess) * 3.5)
-                            } else if rawOffset < minBound {
-                                let excess = minBound - rawOffset
-                                visualOffset = minBound - (sqrt(excess) * 3.5)
-                            } else {
-                                visualOffset = rawOffset
-                            }
-                            dragOffset = visualOffset - currentOffset
-                            let rawStep = Int(round((currentOffset + dragOffset) / Layout.pointsPerStep))
-                            let clampedStep = min(max(rawStep, -6), 6)
-                            selectedEV = -clampedStep
-                            
-                            print("offset: \(currentOffset + dragOffset), step: \(clampedStep)")
-                        }
-                        .onEnded { value in
-                            let rawOffset = currentOffset + dragOffset
-                            let snappedStep = round(rawOffset / Layout.pointsPerStep)
-                            let clampedStep = min(max(snappedStep, -6), 6)
-                            let finalTarget = clampedStep * Layout.pointsPerStep;
-                            
-                            print("offset: \(currentOffset + dragOffset), step: \(clampedStep)")
-                            
-                            withAnimation(.easeOut(duration: 0.12)) {
-                                currentOffset = finalTarget
-                                dragOffset = 0
-                            }
-                        }
-                )
                 .sensoryFeedback(.selection, trigger: selectedEV)
             }
             .mask(LinearGradient(stops: [.init(color: .clear, location: 0.2), .init(color: .black, location: 0.5), .init(color: .black, location: 0.5), .init(color: .clear, location: 0.8)], startPoint: .leading, endPoint: .trailing))
-            .frame(width: 200, height: 36)
         }
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    
+                    let rawOffset = currentOffset + value.translation.width
+                    let minBound = -6.0 * Layout.pointsPerStep
+                    let maxBound = 6.0 * Layout.pointsPerStep
+                    let visualOffset: CGFloat
+                    if rawOffset > maxBound {
+                        let excess = rawOffset - maxBound
+                        visualOffset = maxBound + (sqrt(excess) * 3.5)
+                    } else if rawOffset < minBound {
+                        let excess = minBound - rawOffset
+                        visualOffset = minBound - (sqrt(excess) * 3.5)
+                    } else {
+                        visualOffset = rawOffset
+                    }
+                    dragOffset = visualOffset - currentOffset
+                    let rawStep = Int(round((currentOffset + dragOffset) / Layout.pointsPerStep))
+                    let clampedStep = min(max(rawStep, -6), 6)
+                    selectedEV = -clampedStep
+                    
+                    print("offset: \(currentOffset + dragOffset), step: \(clampedStep)")
+                    
+                }
+                .onEnded { value in
+                    let rawOffset = currentOffset + dragOffset
+                    let snappedStep = round(rawOffset / Layout.pointsPerStep)
+                    let clampedStep = min(max(snappedStep, -6), 6)
+                    let finalTarget = clampedStep * Layout.pointsPerStep;
+                    
+                    print("offset: \(currentOffset + dragOffset), step: \(clampedStep)")
+                    
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        currentOffset = finalTarget
+                        dragOffset = 0
+                    }
+                }
+        )
         .onChange(of: selectedEV) { _, newValue in
             cameraManager.setExposureBias(Float(newValue) / 3)
         }

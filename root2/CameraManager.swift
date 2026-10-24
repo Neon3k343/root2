@@ -38,6 +38,10 @@ final class CameraManager {
         }
     }
     
+    func triggerShutter() {
+        
+    }
+    
     func setupSession() {
         self.camera = camera
         

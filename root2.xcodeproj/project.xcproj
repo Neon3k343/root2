@@ -11,21 +11,8 @@
     ],
   },
   "files": [
+    { "kind": "folder", "path": "root2", "target-membership": [ "root2" ] },
     {
-      "kind": "folder",
-      "path": "root2",
-      "target-membership": [
-        "root2",
-      ],
-      "membership-exceptions": [
-        {
-          "target": "root2",
-          "exclusions": [
-            "Info.plist",
-          ],
-        },
-      ],
-    }, {
       "kind": "group",
       "name": "Products",
       "children": [
@@ -56,6 +43,7 @@
         "INFOPLIST_KEY_CFBundleDisplayName": "root2",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.photography",
         "INFOPLIST_KEY_NSCameraUsageDescription": "Viewfinder for root2",
+        "INFOPLIST_KEY_NSPhotoLibraryUsageDescription": "This app needs access to your gallery to show your latest photo.",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]": "YES",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]": "YES",
         "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]": "YES",
